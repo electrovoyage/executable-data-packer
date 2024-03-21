@@ -8,7 +8,7 @@ import electrovoyage_asset_unpacker as pack
 from tkinter.filedialog import askopenfilename
 from math import ceil
 
-win = Window('Assetbundle Browser', size = (500, 200))
+win = Window('Assetbundle Browser', size = (500, 232))
 
 if len(argv) == 2:
     _file = argv[-1]
@@ -148,9 +148,11 @@ dirview = _ScrolledFrame(lowerhalf, autohide=True)
 dirview.pack(expand=True, fill=BOTH, ipadx=50)
 
 def go_up():
-    changedir('/'.join(current_directory.get().split('/')[:-1]))
+    if current_directory.get() != 'resources':
+        changedir('/'.join(current_directory.get().split('/')[:-1]))
     
-Button(image=ICONS['up'], command=go_up, style=LIGHT).pack(side=LEFT, expand=True, anchor=W)
+Button(win, image=ICONS['up'], command=go_up, style=DARK).pack(side=LEFT, expand=True, anchor=W)
+Combobox()
 
 dirs = {}
 for dirpath, objects in bundle.getDir().items():
