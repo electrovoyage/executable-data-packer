@@ -95,6 +95,9 @@ class Directory:
         self.files = files
         self.dirs = dirs
         self.location = location
+    def __str__(self) -> str:
+        return f'Directory({self.files}, {self.dirs}, {self.location})'
+    __repr__ = __str__
     def createFrame(self) -> Frame:
         fram = Frame(dirview)
         
@@ -152,11 +155,18 @@ def go_up():
         changedir('/'.join(current_directory.get().split('/')[:-1]))
     
 Button(win, image=ICONS['up'], command=go_up, style=DARK).pack(side=LEFT, expand=True, anchor=W)
-Combobox()
+pathsel = Combobox(win)
+pathsel.pack(side=RIGHT, expand=True, fill=X, ipadx=500)
 
-dirs = {}
+pathsel.insert()
+
+#dirs = {}
+dirinfo: dict[str, Directory] = {}
 for dirpath, objects in bundle.getDir().items():
-    prerendered_dirs[dirpath] = Directory(**objects, location=dirpath).createFrame()
+    dirinfo[dirpath] = Directory(**objects, location=dirpath)
+    prerendered_dirs[dirpath] = dirinfo[dirpath].createFrame()
+    
+print(dirinfo)
 
 changedir('resources')
 
