@@ -317,4 +317,6 @@ def search(keyword: str):
 pathsel.bind('<<ComboboxSelected>>', lambda x: selectdir())
 pathsel.bind('<Return>', lambda x: selectdir())
 
+tip.ToolTip(pathsel, 'Select path to browse or enter text to search')
+
 win.mainloop()
