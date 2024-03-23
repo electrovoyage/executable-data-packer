@@ -199,9 +199,10 @@ def selectdir():
     if pathsel.get() in list(bundle.getDir().keys()):
         changedir(pathsel.get())
     else:
-        search(pathsel.get())
+        search_kwd = pathsel.get()
         pathsel.set(f'Search for "{pathsel.get()}" in "{current_directory.get()}"')
-    
+        search(search_kwd)
+
 global prerendered_dirs
 prerendered_dirs: dict[str, Frame] = {}
 
@@ -298,17 +299,20 @@ def updateselfile():
 def search(keyword: str):
     #for key, value in bundle.getDir().items():
     #    for folder in value['folder']:
-    _cdir = bundle.getDir()[current_directory.get()]
-    cdir = {'files': [], 'dirs': []}
-    for file in _cdir['files']:
-        if keyword in file:
-            cdir['files'].append(file)
-    for dir in _cdir['dirs']:
-        if keyword in dir:
-            cdir['dirs'].append(dir)
-    #for dirpath, objects in bundle.getDir().items()
-    prerendered_dirs[pathsel.get()] = Directory(**cdir, location=current_directory.get()).createFrame()
-    changedir(pathsel.get())
+    try:
+        _cdir = bundle.getDir()[current_directory.get()]
+        cdir = {'files': [], 'dirs': []}
+        for file in _cdir['files']:
+            if keyword in file:
+                cdir['files'].append(file)
+        for dir in _cdir['dirs']:
+            if keyword in dir:
+                cdir['dirs'].append(dir)
+        #for dirpath, objects in bundle.getDir().items()
+        prerendered_dirs[pathsel.get()] = Directory(**cdir, location=current_directory.get()).createFrame()
+        changedir(pathsel.get())
+    except KeyError:
+        pass
 
 pathsel.bind('<<ComboboxSelected>>', lambda x: selectdir())
 pathsel.bind('<Return>', lambda x: selectdir())
