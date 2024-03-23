@@ -9,14 +9,7 @@ from tkinter.filedialog import askopenfilename
 from math import ceil
 import tktooltip as tip
 
-win = Window('Assetbundle Browser', size = (500, 248))
-
-if len(argv) == 2:
-    _file = argv[-1]
-else:
-    _file = askopenfilename(title='Pick a file to browse', defaultextension='.packed', filetypes=[('Packed executable assets', '.packed')])
-    if not _file:
-        exit()
+win = Window('Asset browser', size = (500, 248))
 
 '''global bundle
 bundle = pack.AssetPack(_file)'''
@@ -47,7 +40,9 @@ _ICONS = {
     'folder': Image.open(os.path.join(os.getcwd(), 'resources', 'folder_files.png')),
     'text': Image.open(os.path.join(os.getcwd(), 'resources', 'text.png')),
     'up': Image.open(os.path.join(os.getcwd(), 'resources', 'up.png')),
-    'unknown': Image.open(os.path.join(os.getcwd(), 'resources', 'unknown.png'))
+    'unknown': Image.open(os.path.join(os.getcwd(), 'resources', 'unknown.png')),
+    'export': Image.open(os.path.join(os.getcwd(), 'resources', 'export.png')),
+    'run': Image.open(os.path.join(os.getcwd(), 'resources', 'run.png'))
 }
 
 ICONS: dict[str, ImageTk.PhotoImage] = {}
@@ -247,7 +242,7 @@ def loadBundle(f: str):
         
 file_menu.add_command(label='Open', command=lambda: loadBundle(askopenfilename(title='Pick a file to browse', defaultextension='.packed', filetypes=[('Packed executable assets', '.packed')])))
 
-file_options = Toplevel('Export & properties', size=(250, 350))
+file_options = Toplevel('Export & properties', size=(250, 390))
 
 global nofileicon
 nofileicon = ImageTk.PhotoImage(file=os.path.join(os.getcwd(), 'resources', 'nofile.png'))
@@ -259,27 +254,52 @@ selfile_info = Label(file_options, text='No file selected', justify=CENTER)
 selfile_info.pack(side=TOP, padx=5, pady=10)
 
 selfile_options = Labelframe(file_options, text='Operations')
+selfile_options.pack(side=BOTTOM, expand=True, fill=BOTH, padx=5, pady=25)
+
+exportbtn = Button(selfile_options, image=ICONS['export'], state=DISABLED)
+exportbtn.pack(side=LEFT, padx=5, pady=5, ipady=4, expand=True)
+
+exportandrun = Button(selfile_options, image=ICONS['run'], state=DISABLED)
+exportandrun.pack(side=LEFT, padx=5, pady=5, ipady=4, expand=True)
+
+tip.ToolTip(exportbtn, 'Export this file.')
+tip.ToolTip(exportandrun, 'Export this file and open it with the associated program.')
 
 FILEINFO_FORMAT = '''
 Type: {}
 Size: {}
 '''
 
-def updateselfile():
+if len(argv) == 2:
+    loadBundle(argv[-1])
     
+def export_file(f: str):
+    f_ext = os.path.splitext(f)[1]
+    expath = asksaveasfilename(confirmoverwrite=True, defaultextension=f_ext, filetypes=[(f'{f_ext[1:].upper()} file', f_ext)])
+    if expath:
+        bundle.exportfile(f, expath)
+        
+    return expath
+
+def exportandrun_func(f: str):
+        npath = export_file(f)
+        if npath:
+            os.startfile(npath)
+
+def updateselfile():
     global previewfileicon
     previewfileicon = ImageTk.PhotoImage(getPILFileIcon(selfile.get()))
     
     selfile_maininfo.configure(text=selfile.get(), image=previewfileicon)
     file = bundle.getfile(selfile.get())
     selfile_info.configure(text=FILEINFO_FORMAT.format(os.path.splitext(selfile.get())[1][1:].upper() + ' file', format_size(file.read())))
+    expfunc = eval(f'lambda: export_file({repr(selfile.get())})', {'export_file': export_file})
     
-
-loadBundle(_file)
+    #print(selfile.get(), f'lambda: export_file({repr(selfile.get())})')
+    exportbtn.configure(state=NORMAL, command=expfunc)
+    exportandrun.configure(state=NORMAL, command=lambda f=selfile.get(), exportandrun_func=exportandrun_func: exportandrun_func(f))
 
 pathsel.bind('<<ComboboxSelected>>', lambda x: selectdir())
 pathsel.bind('<Return>', lambda x: selectdir())
-
-changedir('resources')
 
 win.mainloop()
