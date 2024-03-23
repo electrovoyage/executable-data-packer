@@ -1,11 +1,10 @@
 from PIL import Image, ImageTk
 from ttkbootstrap import *
 from ttkbootstrap.scrolled import ScrolledFrame as _ScrolledFrame
-from tkinter.filedialog import asksaveasfilename
 from sys import argv, exit, getsizeof
 import os
 import electrovoyage_asset_unpacker as pack
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, askdirectory, asksaveasfilename
 from math import ceil
 import tktooltip as tip
 
@@ -29,11 +28,8 @@ def setdir(s: str):
     pathsel.set(s)
 
 def changedir(s: str):
-    #print(list(prerendered_dirs.keys()), current_directory.get())
     prerendered_dirs[current_directory.get()].pack_forget()
     setdir(s)
-
-#bundle_dir = bundle.getDir()
 
 _ICONS = {
     'folder_empty': Image.open(os.path.join(os.getcwd(), 'resources', 'folder.png')),
@@ -42,7 +38,9 @@ _ICONS = {
     'up': Image.open(os.path.join(os.getcwd(), 'resources', 'up.png')),
     'unknown': Image.open(os.path.join(os.getcwd(), 'resources', 'unknown.png')),
     'export': Image.open(os.path.join(os.getcwd(), 'resources', 'export.png')),
-    'run': Image.open(os.path.join(os.getcwd(), 'resources', 'run.png'))
+    'run': Image.open(os.path.join(os.getcwd(), 'resources', 'run.png')),
+    'tofolder': Image.open(os.path.join(os.getcwd(), 'resources', 'export_tofolder.png')),
+    'zip': Image.open(os.path.join(os.getcwd(), 'resources', 'export_zip.png'))
 }
 
 ICONS: dict[str, ImageTk.PhotoImage] = {}
@@ -85,7 +83,6 @@ def getFileIcon(f: str) -> ImageTk.PhotoImage:
             fileicons[f] = itk
             
             return fileicons[f]
-            #return ImageTk.PhotoImage(Image.open(bundle.getfile(f)).resize((64, 64), Image.BICUBIC).convert('RGBA'))
         case _:
             return ICONS[mode]
         
@@ -117,7 +114,6 @@ def getPILFileIcon(f: str) -> Image.Image:
             
             img = img.convert('RGBA')         
             return img
-            #return ImageTk.PhotoImage(Image.open(bundle.getfile(f)).resize((64, 64), Image.BICUBIC).convert('RGBA'))
         case _:
             return _ICONS[mode]
         
@@ -136,8 +132,6 @@ class Directory:
     def createFrame(self) -> Frame:
         fram = Frame(dirview)
         
-        #Button(fram, text='Up', style=LIGHT, command=lambda: changedir('/'.join(self.location.split('/')[:-1])), state=DISABLED if self.location == 'resources' else NORMAL).grid(row=0, column=0, padx=5, pady=5)
-        
         lastdir = 0
         for i, obj in enumerate(self.dirs):
             row, column = divmod(i, ITEMS_PER_ROW)
@@ -152,7 +146,6 @@ class Directory:
         for i, file in enumerate(self.files):
             row, column = divmod(i + lastdir, ITEMS_PER_ROW)
             def opencmd(path: str):
-                #bundle.unzip(path, exportpath)
                 selfile.set(path)
                 updateselfile()
             btn = Button(fram, text=file, compound=TOP, style=(LIGHT), image=getFileIcon(self.location + '/' + file), command=lambda path=self.location + '/' + file, opencmd=opencmd: opencmd(path))
@@ -198,18 +191,16 @@ Button(win, image=ICONS['up'], command=go_up, style=DARK).pack(side=LEFT, expand
 #dirs = {}
 global dirinfo
 dirinfo: dict[str, Directory] = {}
-'''for dirpath, objects in bundle.getDir().items():
-    dirinfo[dirpath] = Directory(**objects, location=dirpath)
-    prerendered_dirs[dirpath] = dirinfo[dirpath].createFrame()'''
     
 pathsel = Combobox(win, values=list(dirinfo.keys()))
 pathsel.pack(side=RIGHT, expand=True, fill=X, ipadx=500)
 
 def selectdir():
-    try:
+    if pathsel.get() in list(bundle.getDir().keys()):
         changedir(pathsel.get())
-    except KeyError:
-        pass
+    else:
+        search(pathsel.get())
+        pathsel.set(f'Search for "{pathsel.get()}" in "{current_directory.get()}"')
     
 global prerendered_dirs
 prerendered_dirs: dict[str, Frame] = {}
@@ -222,6 +213,9 @@ menu.add_cascade(menu=file_menu, label='File')
     
 def loadBundle(f: str):
     if f:
+        file_menu.entryconfigure(1, state=NORMAL)
+        file_menu.entryconfigure(2, state=NORMAL)
+        
         global bundle
         bundle = pack.AssetPack(f)
         
@@ -241,6 +235,8 @@ def loadBundle(f: str):
         setdir('resources')
         
 file_menu.add_command(label='Open', command=lambda: loadBundle(askopenfilename(title='Pick a file to browse', defaultextension='.packed', filetypes=[('Packed executable assets', '.packed')])))
+file_menu.add_command(label='Extract to folder...', command=lambda: bundle.extract(askdirectory(mustexist=True, title='Select folder to extract to')), image=ICONS['tofolder'], compound=LEFT, state=DISABLED)
+file_menu.add_command(label='Convert to ZIP archive...', command=lambda: bundle.extract_tozip(asksaveasfilename(title='Select folder to extract to', defaultextension='.zip', filetypes=[('ZIP archive', '.zip')])), image=ICONS['zip'], compound=LEFT, state=DISABLED)
 
 file_options = Toplevel('Export & properties', size=(250, 390))
 
@@ -298,6 +294,21 @@ def updateselfile():
     #print(selfile.get(), f'lambda: export_file({repr(selfile.get())})')
     exportbtn.configure(state=NORMAL, command=expfunc)
     exportandrun.configure(state=NORMAL, command=lambda f=selfile.get(), exportandrun_func=exportandrun_func: exportandrun_func(f))
+    
+def search(keyword: str):
+    #for key, value in bundle.getDir().items():
+    #    for folder in value['folder']:
+    _cdir = bundle.getDir()[current_directory.get()]
+    cdir = {'files': [], 'dirs': []}
+    for file in _cdir['files']:
+        if keyword in file:
+            cdir['files'].append(file)
+    for dir in _cdir['dirs']:
+        if keyword in dir:
+            cdir['dirs'].append(dir)
+    #for dirpath, objects in bundle.getDir().items()
+    prerendered_dirs[pathsel.get()] = Directory(**cdir, location=current_directory.get()).createFrame()
+    changedir(pathsel.get())
 
 pathsel.bind('<<ComboboxSelected>>', lambda x: selectdir())
 pathsel.bind('<Return>', lambda x: selectdir())
