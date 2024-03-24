@@ -153,6 +153,40 @@ class Directory:
             btn.grid(row=row, column=column, padx=5, pady=5)
             
         return fram
+    
+    def createFrame_alt(self) -> Frame:
+        fram = Frame(dirview)
+        
+        lastdir = 0
+        for i, obj in enumerate(self.dirs):
+            row, column = divmod(i, ITEMS_PER_ROW)
+            def opencmd(dir_: str):
+                changedir(dir_)
+            btn = Button(fram, text=obj, image=ICONS['folder' + ('' if self.location + '/' + obj in list(bundle.getDir().keys()) else '_empty')], style=(LIGHT), compound=TOP, command=lambda dir_=self.location + '/' + obj, opencmd=opencmd: opencmd(dir_))
+            del opencmd
+            btn.grid(row=row, column=column, padx=5, pady=5)
+            
+            lastdir = i + 1
+        
+        for i, file in enumerate(self.files):
+            row, column = divmod(i + lastdir, ITEMS_PER_ROW)
+            def opencmd(path: str):
+                selfile.set(path)
+                updateselfile()
+                
+            global _itk
+            _itk = ImageTk.PhotoImage(getPILFileIcon(self.location + '/' + file))    
+            
+            searchicons[self.location + '/' + file] = _itk
+            
+            btn = Button(fram, text=file, compound=TOP, style=(LIGHT), image=searchicons[self.location + '/' + file], command=lambda path=self.location + '/' + file, opencmd=opencmd: opencmd(path))
+            del opencmd
+            btn.grid(row=row, column=column, padx=5, pady=5)
+            
+        return fram
+    
+global _itk
+searchicons: dict[str, ImageTk.PhotoImage] = {}
 
 #for dir in bundle.getDirList():
 #print(bundle.listobjects(), bundle.getDir(), sep='\n'*2)
@@ -279,9 +313,9 @@ def export_file(f: str):
     return expath
 
 def exportandrun_func(f: str):
-        npath = export_file(f)
-        if npath:
-            os.startfile(npath)
+    npath = export_file(f)
+    if npath:
+       os.startfile(npath)
 
 def updateselfile():
     global previewfileicon
@@ -297,8 +331,6 @@ def updateselfile():
     exportandrun.configure(state=NORMAL, command=lambda f=selfile.get(), exportandrun_func=exportandrun_func: exportandrun_func(f))
     
 def search(keyword: str):
-    #for key, value in bundle.getDir().items():
-    #    for folder in value['folder']:
     try:
         _cdir = bundle.getDir()[current_directory.get()]
         cdir = {'files': [], 'dirs': []}
@@ -308,14 +340,16 @@ def search(keyword: str):
         for dir in _cdir['dirs']:
             if keyword in dir:
                 cdir['dirs'].append(dir)
-        #for dirpath, objects in bundle.getDir().items()
-        prerendered_dirs[pathsel.get()] = Directory(**cdir, location=current_directory.get()).createFrame()
+        prerendered_dirs[pathsel.get()] = Directory(**cdir, location=current_directory.get()).createFrame_alt()
         changedir(pathsel.get())
     except KeyError:
         pass
 
 pathsel.bind('<<ComboboxSelected>>', lambda x: selectdir())
 pathsel.bind('<Return>', lambda x: selectdir())
+
+file_menu.add_separator()
+file_menu.add_command(label='Quit', command=exit)
 
 tip.ToolTip(pathsel, 'Select path to browse or enter text to search')
 
