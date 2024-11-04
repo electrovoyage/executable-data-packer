@@ -1,0 +1,1 @@
+py -m PyInstaller -y --onefile --distpath Packer main.py

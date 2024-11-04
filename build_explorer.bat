@@ -1,0 +1,1 @@
+py -m PyInstaller --onefile -y --distpath Explorer file_explorer.py
