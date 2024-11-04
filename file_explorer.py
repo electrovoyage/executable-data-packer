@@ -147,6 +147,7 @@ class Directory:
             row, column = divmod(i + lastdir, ITEMS_PER_ROW)
             def opencmd(path: str):
                 selfile.set(path)
+                file_options.focus()
                 updateselfile()
             btn = Button(fram, text=file, compound=TOP, style=(LIGHT), image=getFileIcon(self.location + '/' + file), command=lambda path=self.location + '/' + file, opencmd=opencmd: opencmd(path))
             del opencmd
@@ -227,7 +228,7 @@ global dirinfo
 dirinfo: dict[str, Directory] = {}
     
 pathsel = Combobox(win, values=list(dirinfo.keys()))
-pathsel.pack(side=RIGHT, expand=True, fill=X, ipadx=500)
+pathsel.pack(side=RIGHT, expand=True, fill=X, ipadx=9999999999)
 
 def selectdir():
     if pathsel.get() in list(bundle.getDir().keys()):
