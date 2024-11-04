@@ -1,7 +1,7 @@
 from PIL import Image, ImageTk
 from ttkbootstrap import *
 from ttkbootstrap.scrolled import ScrolledFrame as _ScrolledFrame
-from sys import argv, exit, getsizeof
+import sys
 import os
 import electrovoyage_asset_unpacker as pack
 from tkinter.filedialog import askopenfilename, askdirectory, asksaveasfilename
@@ -31,16 +31,18 @@ def changedir(s: str):
     prerendered_dirs[current_directory.get()].pack_forget()
     setdir(s)
 
+PYINSTALLER = getattr(sys, 'frozen', False)
+APP_DIRECTORY = os.path.dirname(sys.executable) if PYINSTALLER else os.getcwd()
 _ICONS = {
-    'folder_empty': Image.open(os.path.join(os.getcwd(), 'resources', 'folder.png')),
-    'folder': Image.open(os.path.join(os.getcwd(), 'resources', 'folder_files.png')),
-    'text': Image.open(os.path.join(os.getcwd(), 'resources', 'text.png')),
-    'up': Image.open(os.path.join(os.getcwd(), 'resources', 'up.png')),
-    'unknown': Image.open(os.path.join(os.getcwd(), 'resources', 'unknown.png')),
-    'export': Image.open(os.path.join(os.getcwd(), 'resources', 'export.png')),
-    'run': Image.open(os.path.join(os.getcwd(), 'resources', 'run.png')),
-    'tofolder': Image.open(os.path.join(os.getcwd(), 'resources', 'export_tofolder.png')),
-    'zip': Image.open(os.path.join(os.getcwd(), 'resources', 'export_zip.png'))
+    'folder_empty': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'folder.png')),
+    'folder': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'folder_files.png')),
+    'text': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'text.png')),
+    'up': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'up.png')),
+    'unknown': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'unknown.png')),
+    'export': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'export.png')),
+    'run': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'run.png')),
+    'tofolder': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'export_tofolder.png')),
+    'zip': Image.open(os.path.join(APP_DIRECTORY, 'resources', 'export_zip.png'))
 }
 
 ICONS: dict[str, ImageTk.PhotoImage] = {}
@@ -148,6 +150,7 @@ class Directory:
             def opencmd(path: str):
                 selfile.set(path)
                 updateselfile()
+                file_options.focus()
             btn = Button(fram, text=file, compound=TOP, style=(LIGHT), image=getFileIcon(self.location + '/' + file), command=lambda path=self.location + '/' + file, opencmd=opencmd: opencmd(path))
             del opencmd
             btn.grid(row=row, column=column, padx=5, pady=5)
@@ -196,7 +199,7 @@ def get_size_format(b: bytes) -> tuple[float, str]:
     size_units = ('bytes', 'KB', 'MB', 'GB', 'TB')
 
     # Calculate the size of the bytes object in different units
-    size = getsizeof(b)
+    size = sys.getsizeof(b)
     size_label = size_units[0]
 
     for i in range(1, len(size_units)):
@@ -227,7 +230,7 @@ global dirinfo
 dirinfo: dict[str, Directory] = {}
     
 pathsel = Combobox(win, values=list(dirinfo.keys()))
-pathsel.pack(side=RIGHT, expand=True, fill=X, ipadx=500)
+pathsel.pack(side=RIGHT, expand=True, fill=X, ipadx=500000000)
 
 def selectdir():
     if pathsel.get() in list(bundle.getDir().keys()):
@@ -261,9 +264,13 @@ def loadBundle(f: str):
 
         prerendered_dirs = {}
 
-        for dirpath, objects in bundle.getDir().items():
+        menu.entryconfigure(0, state=DISABLED)
+        for num, (dirpath, objects) in enumerate(bundle.getDir().items(), 1):
             dirinfo[dirpath] = Directory(**objects, location=dirpath)
             prerendered_dirs[dirpath] = dirinfo[dirpath].createFrame()
+            win.title(f'Asset browser - Loading assets: {num}/{len(bundle.getDir().items())}')
+            
+        menu.entryconfigure(0, state=NORMAL)
 
         pathsel.configure(values=list(dirinfo.keys()))
         
@@ -276,7 +283,7 @@ file_menu.add_command(label='Convert to ZIP archive...', command=lambda: bundle.
 file_options = Toplevel('Export & properties', size=(250, 390))
 
 global nofileicon
-nofileicon = ImageTk.PhotoImage(file=os.path.join(os.getcwd(), 'resources', 'nofile.png'))
+nofileicon = ImageTk.PhotoImage(file=os.path.join(APP_DIRECTORY, 'resources', 'nofile.png'))
 
 selfile_maininfo = Label(file_options, text='No file selected', image=nofileicon, compound=TOP, font=24, justify=CENTER)
 selfile_maininfo.pack(padx=5, pady=50)
@@ -301,8 +308,8 @@ Type: {}
 Size: {}
 '''
 
-if len(argv) == 2:
-    loadBundle(argv[-1])
+if len(sys.argv) == 2:
+    loadBundle(sys.argv[-1])
     
 def export_file(f: str):
     f_ext = os.path.splitext(f)[1]
@@ -349,7 +356,7 @@ pathsel.bind('<<ComboboxSelected>>', lambda x: selectdir())
 pathsel.bind('<Return>', lambda x: selectdir())
 
 file_menu.add_separator()
-file_menu.add_command(label='Quit', command=exit)
+file_menu.add_command(label='Quit', command=win.quit)
 
 tip.ToolTip(pathsel, 'Select path to browse or enter text to search')
 
