@@ -3,11 +3,25 @@ import argparse
 import sys
 import gzip
 
-parser = argparse.ArgumentParser('executable data packer or something idk')
+parser = argparse.ArgumentParser('main.exe')
 parser.add_argument('-d', '-dir', '--directory', type = str, help='Directory to pack.')
 parser.add_argument('-b', '-base', '--basedirectory', type = str, help='Base directory of project.')
+parser.add_argument('-i', '-ignore', '--ignorelist', type = str, help='Ignorelist file. If specified, filenames written in this file will not be packed.')
 
 args = parser.parse_args()
+
+if not os.path.exists(args.ignorelist):
+    raise ValueError('ignorelist is a non-existent file')
+
+with open(args.ignorelist, 'r') as f:
+    ignorelist = [i.strip() for i in f.readlines()]
+
+def removeAssetPack(files: list[str]) -> list[str]:
+    _files = files
+    if 'assets.packed' in _files:
+        _files.remove('assets.packed')
+        
+    return _files
 
 if args.directory is None or args.basedirectory is None and (os.path.basename(args.directory) != 'resources'):
     print('an argument is none')
@@ -27,28 +41,25 @@ filetree = {}
 dirinfo = {}
 for _cdir, dirs, files in os.walk(args.directory):
     cdir = os.path.relpath(_cdir, args.basedirectory)
+    _files = files.copy()
     #current_dict = dirinfo
-    for file in files:
+    for file in removeAssetPack(files):
         filepath = os.path.join(cdir, file).replace('\\', '/') # done for ease of access further on, i know what the os.path module is
+        
+        if filepath.strip() in ignorelist:
+            _files.remove(file)
+            continue
+        
         filedata: bytes
 
         with open(os.path.join(_cdir, file), 'rb') as rfile:
             filedata = rfile.read()
 
         filetree[filepath] = filedata
-        dirinfo[cdir.replace('\\', '/')] = {'files': files, 'dirs': dirs}
-    
-print(dirinfo)
+        
+    dirinfo[cdir.replace('\\', '/')] = {'files': (_files), 'dirs': dirs}
 
 packdata = {'tree': filetree, 'dirinfo': dirinfo}
-    
-'''
-for dirpath, dirnames, filenames in os.walk(root_dir):
-    current_dir = directory_dict
-    for dir_name in dirpath.split(os.sep):
-        current_dir = current_dir.setdefault(dir_name, {})
-    current_dir.update({dir_name: filenames})
-'''
 
 with open(os.path.join(args.basedirectory, 'assets.packed'), 'wb') as assets:
     
