@@ -1,1 +1,1 @@
-py -m PyInstaller -y --onefile --distpath Packer main.py
+py -m PyInstaller -y --onefile --distpath Packer --workpath temp main.py

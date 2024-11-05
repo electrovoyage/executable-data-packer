@@ -1,2 +1,2 @@
-py -m PyInstaller --onefile -y --distpath Explorer --noconsole file_explorer.py
-copy resources Explorer
+py -m PyInstaller --onefile -y --distpath Explorer --windowed --workpath temp file_explorer.py
+copy resources Explorer/resources
