@@ -89,6 +89,7 @@ for _cdir, dirs, files in os.walk(args.directory):
     #print(len(files), len(dirs))
     if len(files) + len(dirs) == 0 and args.ignore_empty == True:
         excluded_folders.append(cdir)
+        dirinfo[cdir.replace('\\', '/')] = {'files': [], 'dirs': []}
         continue
     
     for file in removeAssetPack(files):
