@@ -12,6 +12,8 @@ parser.add_argument('-ne', '-noempty', '--ignore-empty', action='store_true', he
 
 args = parser.parse_args()
 
+print(f'Delete empty folders: {args.ignore_empty}')
+
 def load_ignore_patterns(ignore_file: str) -> list[str]:
     """Load ignore patterns from the specified file."""
     patterns = []
@@ -54,11 +56,13 @@ if args.directory is None or args.basedirectory is None and (os.path.basename(ar
 if os.path.basename(args.directory) == 'resources':
     args.basedirectory = os.path.dirname(args.directory)
 
+excluded_folders: list[str] = []
+
 print('Collecting files...')
 filetree = {}
 dirinfo = {}
 for _cdir, dirs, files in os.walk(args.directory):
-    cdir = os.path.relpath(_cdir, args.basedirectory)
+    cdir: str = os.path.relpath(_cdir, args.basedirectory)
     #current_dict = dirinfo
     
     '''
@@ -82,7 +86,9 @@ for _cdir, dirs, files in os.walk(args.directory):
         
         #print(files)
         
-    if len(files) + len(dirs) == 0 and args.ignore_empty:
+    #print(len(files), len(dirs))
+    if len(files) + len(dirs) == 0 and args.ignore_empty == True:
+        excluded_folders.append(cdir)
         continue
     
     for file in removeAssetPack(files):
@@ -99,7 +105,57 @@ for _cdir, dirs, files in os.walk(args.directory):
 
         filetree[filepath] = filedata
         
-    dirinfo[cdir.replace('\\', '/')] = {'files': (files), 'dirs': dirs}
+    #print(cdir, files, dirs)
+    dirinfo[cdir.replace('\\', '/')] = {'files': files, 'dirs': dirs}
+    
+dirinfo: dict[str, dict[str, list[str]]]
+
+#if 'resources' not in dirinfo.keys():
+#    print('Warning: the resources folder is empty. This is likely a bug in the packer. The resources folder\'s contents will now re-collected.')
+#    files = folders = []
+#    for object in os.listdir(args.basedirectory):
+#        isfile = os.path.isfile(object)
+#        if isfile:
+#            files.append(object)
+#        else:
+#            folders.append(object)
+#            
+#    for i in files:
+#        with open(i, 'rb') as file:
+#            filedata = file.read()
+#            
+#        filetree[f'resources/{i}'] = filedata
+#            
+#    dirinfo['resources'] = {'files': files, 'dirs': folders}
+
+#if dirinfo == {}:
+#    print('Warning: the directory information is blank. This is likely a bug in the packer program. It will now be regenerated.')
+#    
+#    for _cdir, folders, files in os.walk(args.directory):
+#        cdir: str = os.path.relpath(_cdir, args.basedirectory)
+#        dirinfo[cdir.replace('\\', '/')] = {'files': files, 'dirs': dirs}
+
+if args.ignore_empty == True:
+    print('Excluding empty directories (--ignore-empty)...')
+    for path in dirinfo:
+        if len(dirinfo[path]['files']) + len(dirinfo[path]['dirs']) > 0:
+            dirinfo[path] = dirinfo[path]
+        else:
+            if path not in excluded_folders:
+                excluded_folders.append(path)
+            
+    for path in dirinfo:
+        for folder in excluded_folders:
+            parent = '/'.join(path.split('/')[:-1])
+            #print(parent)
+            if parent.strip() == '': continue
+            #print(dirinfo[parent]['dirs'], folder)
+
+            actualfoldername = folder.replace('\\', '/').split('/')[-1]
+
+            if actualfoldername in dirinfo[parent]['dirs']:
+                dirinfo[parent]['dirs'].remove(actualfoldername)
+                print(f'    - Excluded: "{folder}"')
 
 packdata = {'tree': filetree, 'dirinfo': dirinfo}
 
