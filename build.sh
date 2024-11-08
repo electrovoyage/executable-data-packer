@@ -1,1 +1,1 @@
-python3 -m PyInstaller -y --onefile --distpath Packer --workpath temp main.py
+python3 -m PyInstaller -y --onefile --distpath Packer --upx-dir /mnt/f/upx --workpath temp main.py
