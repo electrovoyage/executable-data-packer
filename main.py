@@ -11,20 +11,20 @@ parser.add_argument('-i', '-ignore', '--ignorelist', type = str, help='Ignorelis
 parser.add_argument('-ne', '-noempty', '--ignore-empty', action='store_true', help='Don\'t write empty folders into the directory information. Folders are considered empty if there are no files in them after skipping files in the ignorelist (if specified).')
 
 group = parser.add_mutually_exclusive_group(required=False)
-group.add_argument('-il', '-interl', '--interleave', action='store_true', help='Create an interleaved asset pack.')
+#group.add_argument('-il', '-interl', '--interleave', action='store_true', help='Create an interleaved asset pack.')
 group.add_argument('-s', '--split', action='store_true', help='Create an asset pack where every packed file is a new compressed file.')
 
 args = parser.parse_args()
 
 #print(args.interleave)
-INTERLEAVE = 'interleave'
+#INTERLEAVE = 'interleave'
 SPLIT_PACK = 'split_pack'
 NORMAL = 'normal'
 
-if args.interleave:
-    ASSET_PACK_MODE = INTERLEAVE
-#elif args.split:
-#    ASSET_PACK_MODE = SPLIT_PACK
+#if args.interleave:
+#    ASSET_PACK_MODE = INTERLEAVE
+if args.split:
+    ASSET_PACK_MODE = SPLIT_PACK
 else:
     ASSET_PACK_MODE = NORMAL
 
@@ -145,29 +145,29 @@ if args.ignore_empty == True:
                 dirinfo[parent]['dirs'].remove(actualfoldername)
                 print(f'    - Excluded: "{folder}"')
                 
-def interleave_files(file_dict: dict[str, bytes]):
-    import tqdm
-    
-    # Determine the number of files and the maximum length of the contents
-    file_count = len(file_dict)
-    max_length = max(len(content) for content in file_dict.values())
-
-    # Create a bytearray to hold the interleaved contents
-    interleaved = bytearray()
-
-    # Interleave the contents
-    p = tqdm.tqdm(total=max_length, desc='Interleaving files')
-    for i in range(max_length):
-        for key in file_dict:
-            content = file_dict[key]
-            if i < len(content):
-                interleaved.extend(content[i:i + 1])
-        
-        p.update()
-        
-    p.close()
-
-    return interleaved
+#def interleave_files(file_dict: dict[str, bytes]):
+#    import tqdm
+#    
+#    # Determine the number of files and the maximum length of the contents
+#    file_count = len(file_dict)
+#    max_length = max(len(content) for content in file_dict.values())
+#
+#    # Create a bytearray to hold the interleaved contents
+#    interleaved = bytearray()
+#
+#    # Interleave the contents
+#    p = tqdm.tqdm(total=max_length, desc='Interleaving files')
+#    for i in range(max_length):
+#        for key in file_dict:
+#            content = file_dict[key]
+#            if i < len(content):
+#                interleaved.extend(content[i:i + 1])
+#        
+#        p.update()
+#        
+#    p.close()
+#
+#    return interleaved
 
 with open(os.path.join(args.basedirectory, 'assets.packed'), 'wb') as assets:
     
@@ -175,25 +175,26 @@ with open(os.path.join(args.basedirectory, 'assets.packed'), 'wb') as assets:
         case 'normal':
             packdata = {'tree': filetree, 'dirinfo': dirinfo}
             header = b'!PACKED\n'
-        case 'interleave':
-            packdata = {'allocations': {}, 'data': b'', 'dirinfo': dirinfo, 'filecount': len(filetree)}
-            
-            #for index, file in enumerate([i[1] for i in list(filetree.items())]):
-            #    #print(index, len(file))
-            #    allocations[]
-            
-            #buffer = bytearray(sum([len(i) for _, i in filetree.items()]))
-            
-            #print('Interleaving files (this can take a while)...')
-            array = interleave_files(filetree)
-            
-            print('Collecting allocation data...')
-            for index, path in enumerate(filetree.keys()):
-                file = filetree[path]
-                packdata['allocations'][path] = {'offset': index, 'size': len(file)}
-                
-            header = b'!PACKED_INTERLEAVE\n'
-            packdata['assets'] = array
+        #case 'interleave':
+        #    packdata = {'allocations': {}, 'data': b'', 'dirinfo': dirinfo, 'filecount': len(filetree)}
+        #    
+        #    #for index, file in enumerate([i[1] for i in list(filetree.items())]):
+        #    #    #print(index, len(file))
+        #    #    allocations[]
+        #    
+        #    #buffer = bytearray(sum([len(i) for _, i in filetree.items()]))
+        #    
+        #    #print('Interleaving files (this can take a while)...')
+        #    array = interleave_files(filetree)
+        #    
+        #    print('Collecting allocation data...')
+        #    for index, path in enumerate(filetree.keys()):
+        #        file = filetree[path]
+        #        packdata['allocations'][path] = {'offset': index, 'size': len(file)}
+        #        
+        #    header = b'!PACKED_INTERLEAVE\n'
+        #    packdata['data'] = array
+        #    print(array[2::len(filetree)])
 
     print('Compressing...')
     data = gzip.compress(str(packdata).encode())

@@ -56,6 +56,11 @@ def getFileIcon(f: str) -> ImageTk.PhotoImage:
     match mode:
         case 'image':
             imgdata = bundle.getfile(f)
+            
+            #with open('h.png', 'wb') as h:
+            #    h.write(imgdata.read())
+            print(f)
+            
             img = Image.open(imgdata)
             del imgdata
             
@@ -255,7 +260,7 @@ def loadBundle(f: str):
         file_menu.entryconfigure(2, state=NORMAL)
         
         global bundle
-        bundle = pack.AssetPack(f)
+        bundle = pack.identifyAndReadAssetPack(f)
         
         global prerendered_dirs
         if prerendered_dirs:
