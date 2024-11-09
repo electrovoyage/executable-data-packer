@@ -59,7 +59,7 @@ def getFileIcon(f: str) -> ImageTk.PhotoImage:
             
             #with open('h.png', 'wb') as h:
             #    h.write(imgdata.read())
-            print(f)
+            #print(f)
             
             img = Image.open(imgdata)
             del imgdata
