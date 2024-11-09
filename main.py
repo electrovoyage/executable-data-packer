@@ -23,8 +23,8 @@ NORMAL = 'normal'
 
 if args.interleave:
     ASSET_PACK_MODE = INTERLEAVE
-elif args.split:
-    ASSET_PACK_MODE = SPLIT_PACK
+#elif args.split:
+#    ASSET_PACK_MODE = SPLIT_PACK
 else:
     ASSET_PACK_MODE = NORMAL
 
