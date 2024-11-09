@@ -12,7 +12,7 @@ parser.add_argument('-ne', '-noempty', '--ignore-empty', action='store_true', he
 
 group = parser.add_mutually_exclusive_group(required=False)
 group.add_argument('-il', '-interl', '--interleave', action='store_true', help='Create an interleaved asset pack.')
-group.add_argument('-s', '--split', action='store_true', help='Create an asset pack where every packed file is a new compressed file.')
+#group.add_argument('-s', '--split', action='store_true', help='Create an asset pack where every packed file is a new compressed file.')
 
 args = parser.parse_args()
 
@@ -76,10 +76,10 @@ excluded_folders: list[str] = []
 
 print('Collecting files...')
 filetree = {}
-dirinfo = {}
+_dirinfo = {}
 for _cdir, dirs, files in os.walk(args.directory):
     cdir: str = os.path.relpath(_cdir, args.basedirectory)
-    #current_dict = dirinfo
+    #current_dict = _dirinfo
     
     '''
     def walk_directory(directory, ignore_file):
@@ -105,7 +105,7 @@ for _cdir, dirs, files in os.walk(args.directory):
     #print(len(files), len(dirs))
     if len(files) + len(dirs) == 0 and args.ignore_empty == True:
         excluded_folders.append(cdir)
-        dirinfo[cdir.replace('\\', '/')] = {'files': [], 'dirs': []}
+        _dirinfo[cdir.replace('\\', '/')] = {'files': [], 'dirs': []}
         continue
     
     for file in removeAssetPack(files):
@@ -119,55 +119,33 @@ for _cdir, dirs, files in os.walk(args.directory):
         filetree[filepath] = filedata
         
     #print(cdir, files, dirs)
-    dirinfo[cdir.replace('\\', '/')] = {'files': files, 'dirs': dirs}
+    _dirinfo[cdir.replace('\\', '/')] = {'files': files, 'dirs': dirs}
     
-dirinfo: dict[str, dict[str, list[str]]]
+dirinfo: dict[str, dict[str, list[str]]] = {}
 
 if args.ignore_empty == True:
     print('Excluding empty directories (--ignore-empty)...')
-    for path in dirinfo:
-        if len(dirinfo[path]['files']) + len(dirinfo[path]['dirs']) > 0:
-            dirinfo[path] = dirinfo[path]
+    for path in _dirinfo:
+        if len(_dirinfo[path]['files']) + len(_dirinfo[path]['dirs']) > 0:
+            dirinfo[path] = _dirinfo[path]
         else:
             if path not in excluded_folders:
                 excluded_folders.append(path)
+            
+    #print(dirinfo)   
             
     for path in dirinfo:
         for folder in excluded_folders:
             parent = '/'.join(path.split('/')[:-1])
             #print(parent)
             if parent.strip() == '': continue
-            #print(dirinfo[parent]['dirs'], folder)
+            #print(_dirinfo[parent]['dirs'], folder)
 
             actualfoldername = folder.replace('\\', '/').split('/')[-1]
 
-            if actualfoldername in dirinfo[parent]['dirs']:
+            if actualfoldername in _dirinfo[parent]['dirs']:
                 dirinfo[parent]['dirs'].remove(actualfoldername)
                 print(f'    - Excluded: "{folder}"')
-                
-#def interleave_files(file_dict: dict[str, bytes]):
-#    import tqdm
-#    
-#    # Determine the number of files and the maximum length of the contents
-#    file_count = len(file_dict)
-#    max_length = max(len(content) for content in file_dict.values())
-#
-#    # Create a bytearray to hold the interleaved contents
-#    interleaved = bytearray()
-#
-#    # Interleave the contents
-#    p = tqdm.tqdm(total=max_length, desc='Interleaving files')
-#    for i in range(max_length):
-#        for key in file_dict:
-#            content = file_dict[key]
-#            if i < len(content):
-#                interleaved.extend(content[i:i + 1])
-#        
-#        p.update()
-#        
-#    p.close()
-#
-#    return interleaved
 
 def interleave_files(file_dict: dict[str, bytes]) -> tuple[bytearray, dict[str, dict[str, int]]]:
     '''
@@ -207,25 +185,13 @@ with open(os.path.join(args.basedirectory, 'assets.packed'), 'wb') as assets:
         case 'interleave':
             packdata = {'allocations': {}, 'data': b'', 'dirinfo': dirinfo, 'filecount': len(filetree)}
             
-            #for index, file in enumerate([i[1] for i in list(filetree.items())]):
-            #    #print(index, len(file))
-            #    allocations[]
-            
-            #buffer = bytearray(sum([len(i) for _, i in filetree.items()]))
-            
-            print('Interleaving files (this can take a while)...')
+            print('Interleaving files...')
             array, allocations = interleave_files(filetree)
             
             packdata['allocations'] = allocations
-            
-            #print('Collecting allocation data...')
-            #for index, path in enumerate(filetree.keys()):
-            #    file = filetree[path]
-            #    packdata['allocations'][path] = {'offset': index, 'size': len(file)}
                 
             header = b'!PACKED_INTERLEAVE\n'
             packdata['data'] = array
-            print(array[2::len(filetree)])
 
     print('Compressing...')
     data = gzip.compress(str(packdata).encode())
